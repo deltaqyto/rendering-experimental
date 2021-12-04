@@ -1,0 +1,101 @@
+Todo:
+	Add shader table, support either name or direct strings
+	Sort out the object clashes, since an object has attributes but parents can also force on more attributes
+
+Yaml structure:
+-------x--------
+
+Scene table:
+	Scene:
+		- Self attributes
+		- children scenes
+		- children objects
+
+	Objects:
+		- Attributes
+
+Setup info:
+	- Framerate
+
+shared_data:
+  Color table:
+    color name:
+        - r
+        - g
+        - b
+
+
+------x-x------
+
+Objects:
+	Object attributes and their defaults should be detailed in the attributes method self.list_attributes()
+    Objects must create and destroy any gl elements
+    Objects must set the gl state in vertex arrays, textures and shaders.
+    Objects must not communicate directly with others
+    Objects must not modify the attribute pool for any purpose
+    Objects must respect all inheritable attributes
+
+    The object class:
+        The object base class provides a gl.Vao and gl.Vbo object. These should be filled with appropriate data and bound to each other before drawing
+        
+
+	Common object attributes, can expect to be present:
+		elapsed_frames: int. Frames since the start of clip
+		shader: gl.Shader. Handle for shader, use to enable and pass render arguments
+		in_matrix: gl.Mat4. This matrix is used by parents to modify the scale of the object. Multiply this into the local transform matrix
+		screen_x: int. Size of screen in pixels
+		screen_y: int. Size of screen in pixels
+		alpha_in: float. Parent control of the child alpha. Multiply with object alpha before render
+
+
+	Useful object attributes, not all must be expressed:
+		visible: boolean, assume true. Show if true
+		pos_x: float, assume 0. Specifies offset of the object center relative to its origin
+		pos_y: float, assume 0. Specifies offset of the object center relative to its origin
+		size_x: float, assume 0.5. Specifies size of the object, normalised to -1:1
+		size_y: float, assume 0.5. Specifies size of the object, normalised to -1:1
+		psize_x: float, assume 40. Specifies the size of the object in pixels. Prefer size_x if available
+		psize_y: float, assume 40. Specifies the size of the object in pixels. Prefer size_y if available
+		color: fv3, assume 1, 0, 1. Color of the object, bounded to 0:1
+		alpha: float, assume 1. Alpha of the object, bounded to 0:1
+
+	Inheritable attributes:
+		clip_bounds: fv4, assume -1, -1, 1, 1. Provides bounding box of the parent. Clip self against it             # Achieved by setting gl_ClipDistance in the Vshader
+	
+	
+Scenes:
+	Scenes must completely encapsulate childen, such that transforms or modifications to the scene affect the children equally
+	Scenes must apply clipping and alpha inheritance from any parents
+
+	Useful scene attributes, not all must be expressed:
+		pos_x: float, assume 0. Specifies offset of the scene center relative to its origin
+		pos_y: float, assume 0. Specifies offset of the scene center relative to its origin
+		size_x: float, assume 0.5. Specifies size of the scene, normalised to -1:1
+		size_y: float, assume 0.5. Specifies size of the scene, normalised to -1:1
+		back_color: fv3, assume 1, 0, 1. background color of the scene, bounded to 0:1
+	Inheritable attributes:
+		clip_bounds: fv4, assume -1, -1, 1, 1. Provides bounding box of the parent. Clip self against it and use to determine children clip
+		visible: boolean, assume true. Show if true
+		back_alpha: float, assume 0. Alpha of the scene and all children                           # This must be applied to children
+
+-------x-x-------
+
+Attribute handlers:
+	When the yaml is loaded, attributes are stored directly.
+	Before being passed to a renderer, the attributes are handled by the parser.
+	Key commands like "const" signify how the following attribute details are to be handled, eg:
+		Linear frame signifies to multiply the following value with the current frame count.
+	The results are then passed to the renderer
+
+	Attribute prefixes:                                                       # Overhaul for native vector support
+		const
+		linear_frame
+		linear_frame_offset
+		sine
+		sine_offset
+
+	Attribute processing:
+		Attributes are made up of ... # Finish
+
+	
+

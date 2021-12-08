@@ -4,9 +4,10 @@ graph:
     root:
       self:
         autofit: True
-        pos_x:
-          - linear_frames
-          - 0.3
+        #pos_x:
+        #  - sin
+        #  - 0.002
+        #  - 0.9
         use_background: False
 
       scenes:
@@ -16,62 +17,38 @@ graph:
             - 0.2
       objects:
         r1:
-          pos_y:
-            - linear_frames
-            - 0.2
-        c1:
-
-    stem:
-      self:
-        use_background: True
-        autofit: True
-        background_col:
-          - const_vec3
-          - 0
-          - 255
-          - 0
-        pos_x:
-          - linear_frames
-          - 0.3
-        width:
-          - const
-          - 20
-      scenes:
-      objects:
-        r2:
-
-        c2:
-
+        p1:
   objects:
-    r1:
-      type: rect
+    p1:
+      type: circle
       color:
         - const_vec3
         - 0.2
         - 0.5
         - 1
+    r1:
+      type: rect
+      color:
+        - const_vec3
+        - 1
+        - 0.2
+        - 0
       line_weight:
         - const
         - 10
       pos_x:
         - sin
-        - 0.0002
-        - 0.9
+        - 0.02
+        - 0.1
       size_x:
-        - sin_offset
-        - 0.002
+        - const
+        - 0.2
         - 0.25
         - 1.57079
       size_y:
         - sin
         - 0.0002
         - 0.6
-      
-    r2:
-      type: rect
-      line_weight:
-        - const
-        - 5
 
 setup:
   frame_rate: 30

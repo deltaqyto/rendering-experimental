@@ -3,33 +3,67 @@ graph:
   scenes:
     root:
       self:
-        autofit: True
-        #pos_x:
-        #  - sin
-        #  - 0.002
-        #  - 0.9
-        use_background: False
-
+        pos_y:
+          - fsine
+          - 0.001
+          - 0.8
       scenes:
-        stem:
-          pos_x:
-            - linear_frames
-            - 0.2
       objects:
         r1:
         p1:
+        p2:
+    sub:
+      self:
+        pos_x:
+          - fsine
+          - 0.001
+          - 0.8
+      scenes:
+      objects:
+        r1:
+        p1:
+        p2:
   objects:
     p1:
-      type: circle
+      type: regpoly
       color:
-        - const_vec3
+        - - 3
+          - const
         - 0.2
         - 0.5
         - 1
+      faces:
+        - - fsine
+          - floor
+          - abs
+        - 0.003
+        - 20
+        - 1
+    p2:
+      type: regpoly
+      pos_x:
+        - const
+        - 0.4
+      color:
+        - - 3
+          - const
+        - 0.5
+        - 0.2
+        - 1
+      faces:
+        - - frame
+          - multiply
+          - abs
+          - floor
+          - add
+        - 0.003
+        - 1
+        - 3
     r1:
       type: rect
       color:
-        - const_vec3
+        - - 3
+          - const
         - 1
         - 0.2
         - 0
@@ -37,23 +71,26 @@ graph:
         - const
         - 10
       pos_x:
-        - sin
+        - fsine
         - 0.02
         - 0.1
       size_x:
         - const
         - 0.2
-        - 0.25
-        - 1.57079
       size_y:
-        - sin
+        - fsine
         - 0.0002
         - 0.6
 
 setup:
   frame_rate: 30
+  background_color:
+    - 0.2
+    - 0.3
+    - 0.3
 
 shared_data:
   colors:
     background_dark:
+      -
       

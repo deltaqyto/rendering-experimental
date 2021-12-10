@@ -1,6 +1,5 @@
 Todo:
 	Add shader table, support either name or direct strings
-	Sort out the object clashes, since an object has attributes but parents can also force on more attributes
 
 Yaml structure:
 -------x--------
@@ -80,22 +79,65 @@ Scenes:
 
 -------x-x-------
 
-Attribute handlers:
-	When the yaml is loaded, attributes are stored directly.
-	Before being passed to a renderer, the attributes are handled by the parser.
-	Key commands like "const" signify how the following attribute details are to be handled, eg:
-		Linear frame signifies to multiply the following value with the current frame count.
-	The results are then passed to the renderer
+Attribute handlers: v2
 
-	Attribute prefixes:                                                       # Overhaul for native vector support
-		const
-		linear_frame
-		linear_frame_offset
-		sine
-		sine_offset
+	At storage, the attributes are stored as a list, starting with the command group, followed by attributes it will apply to
+	example_attr:
+		- - frame
+		  - add
+		  - multiply
+		  - floor
+		- 30
+		- 0.3
+		- 0.7
 
-	Attribute processing:
-		Attributes are made up of ... # Finish
+	where example_attr holds its name, and 30 / 0.3 are example values. The first list element is the command group.
+	The command group is a list of different operators, arranged in postfix notation.
+		The particular group shown collects the frame number with "frame", then adds 30 units and multiplies by 0.3, then floor dividing by 0.7
+	The parser processes the group for all input names and provides an output dictionary containing the names and their evaluated values.
 
-	
+	When processing, if any command word in a name is unknown or the name is not formatted as expected, stop and copy the input name into the output
 
+	After parsing, the output attributes are provided to the mixer.
+	The mixer makes use of an internal table to combine two sets of attributes with a default dictionary
+	One set of attributes is the output of the parser, while the other set is inherited from the parent
+	Only names seen in the default dictionary need to be passed forward.
+
+	The concept of mixing allows some attributes like alpha to be mixed via multiplication, while attributes like position are mixed via addition.
+	Mix types are:
+		Add       -> Add both inputs
+		Multiply  -> Multiply both inputs
+		Inherit   -> Use the parent set
+		Ignore    -> Use the child set
+
+	Attributes default to inherit, and if a set is missing the required name, the default value is used instead.
+
+	Command options:
+	#   name -> num of operands, num of data values, description
+
+		const -> 0, 1, return constant value
+		multiply -> 1, 1, multiply previous operand with datapoint
+		frame -> 0, 0, return current frame number
+		add -> 1, 1, add previous operand to datapoint
+		sine -> 1, 0, return sine of previous operand
+		fsine -> 0, 2, return sine of frame number, where c1 is multiplied with frame number and c2 is multiplied with the result
+		floor -> 1, 1, return the floor division of the previous operand with datapoint
+		lookup -> 3, 0, lookup the provided name in the shared data section, using section and then name.
+						Use the third input to provide a default value
+
+	If the first command of the group is a number, it signifies that the group should produce a list output.
+	Repeat the commands as specified. Each time the commands are finished, add the result to an output list.
+	Each rep will be provided with new constants that may differ between run.
+	Eg:
+	Attr:
+	  - - 2
+	    - const
+	    - multiply
+	  - 5
+	  - 0.4
+	  - 20
+	  - 0.3
+
+	will provide the output [2, 6]
+
+	If a command would yield a vector of the same degree as the vector number, only yield the relevant index of that vector

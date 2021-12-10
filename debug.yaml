@@ -8,19 +8,17 @@ graph:
           - 0.001
           - 0.8
       scenes:
+        sub:
       objects:
         r1:
-        p1:
-        p2:
     sub:
       self:
         pos_x:
           - fsine
-          - 0.001
+          - 0.003
           - 0.8
       scenes:
       objects:
-        r1:
         p1:
         p2:
   objects:
@@ -28,15 +26,22 @@ graph:
       type: regpoly
       color:
         - - 3
-          - const
+          - frame
+          - multiply
+          - sine
+          - multiply
+
+        - 0.002
         - 0.2
+        - 0.004
         - 0.5
+        - 0.001
         - 1
       faces:
         - - fsine
           - floor
           - abs
-        - 0.003
+        - 0.0003
         - 20
         - 1
     p2:
@@ -45,11 +50,13 @@ graph:
         - const
         - 0.4
       color:
-        - - 3
-          - const
-        - 0.5
-        - 0.2
-        - 1
+        - - lookup
+        - colors
+        - light
+        - - 1
+          - 1
+          - 1
+
       faces:
         - - frame
           - multiply
@@ -88,9 +95,13 @@ setup:
     - 0.2
     - 0.3
     - 0.3
+  max_draw_depth:
+    5
 
 shared_data:
   colors:
-    background_dark:
-      -
+    light:
+      - 1
+      - 0.7
+      - 0.9
       

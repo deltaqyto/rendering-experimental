@@ -4,7 +4,6 @@ import bindings as gl
 
 
 # Current priorities, in order:
-# todo implement checks for vector returns + test case
 # Todo enable scene rendering + proper attribute handling
 
 
@@ -21,7 +20,7 @@ def parse_attribute_functions(attribs, eval_vals, shared_data):
     method_lookup = {"const": [0, 1, lambda v, c, e, s: c[0]], "multiply": [1, 1, lambda v, c, e, s: c[0] * v[0]],
                      "frame": [0, 0, lambda v, c, e, s: e["frames"]], "add": [1, 1, lambda v, c, e, s: c[0] + v[0]],
                      "sine": [1, 0, lambda v, c, e, s: math.sin(v[0])], "floor": [1, 1, lambda v, c, e, s: c[0] * math.floor(v[0] / c[0])],
-                     "lookup": [2, 0, lambda v, c, e, s: s.get(c[0], {}).get(c[1]) if s.get(c[0]).get(c[1]) is not None else c[2]],
+                     "lookup": [0, 3, lambda v, c, e, s: s.get(c[0], {}).get(c[1]) if s.get(c[0]).get(c[1]) is not None else c[2]],
                      "fsine": [0, 2, lambda v, c, e, s: c[1] * math.sin(c[0] * e["frames"])], "abs": [1, 0, lambda v, c, e, s: math.fabs(v[0])],
                      "print": [1, 0, lambda v, c, e, s: printreturn(v[0])]}
 
@@ -51,7 +50,14 @@ def parse_attribute_functions(attribs, eval_vals, shared_data):
                 method = method_lookup[instruction]
                 pass_consts = constants[:method[1]]
                 constants = constants[method[1]:]
-                values.append(method[2]([values.pop() for _ in range(method[0])], pass_consts, eval_vals, shared_data))
+                pass_vals = [values.pop() for _ in range(method[0])]
+                outval = method[2](pass_vals, pass_consts, eval_vals, shared_data)
+                if not isinstance(outval, (list, tuple)):
+                    values.append(outval)
+                elif len(outval) != count:
+                    values.append(outval)
+                else:
+                    values.append(outval[index])
             output.append(values[-1])
 
         # Save output
@@ -208,8 +214,9 @@ class RegPoly(Object):
         super().__del__()
 
     def draw(self, draw_attrs):
-        self.vertices = [0, 0] + self.distribute(0.8, 0.8, draw_attrs.get("faces"))
-        self.indices = self.tri_fan_indices(draw_attrs.get("faces"))
+        faces = max(3, min(draw_attrs.get("faces"), draw_attrs.get("max_faces")))
+        self.vertices = [0, 0] + self.distribute(0.8, 0.8, faces)
+        self.indices = self.tri_fan_indices(faces)
 
         self.vbo.add_data(self.vertices, gl.GL_const.dynamic_draw)
         self.ebo.add_data(self.indices, gl.GL_const.dynamic_draw)
@@ -235,8 +242,11 @@ class Scene:
     def __init__(self, name, sc_children=None, obj_children=None, self_attrs=None):
         self.sc_children = sc_children if sc_children is not None else {}
         self.obj_children = obj_children if obj_children is not None else {}
-        self.self_attrs = self_attrs if self_attrs is not None else {}
+        self.attributes = self_attrs if self_attrs is not None else {}
         self.name = name
+
+        self.default_attrs = {"size_x": [0.5, "horizontal scale factor"], "size_y": [0.5, "vertical scale factor"],
+                              "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"]}
 
     def add_scene(self, child):
         self.sc_children.append(child)
@@ -244,23 +254,28 @@ class Scene:
     def add_object(self, child):
         self.obj_children.append(child)
 
-    def render(self, attributes, objects, scenes, shared_data, parent_attrs=None):
-        # Calculate inheritables
-        parent_attrs = {} if parent_attrs is None else parent_attrs
-        inheritables = parse_attribute_functions(self.self_attrs, attributes, shared_data)
+    def render(self, evaluators, objects, scenes, shared_data, depth, external_attrs=None):
+        external_attrs = {} if external_attrs is None else external_attrs
+        evaluated_attrs = parse_attribute_functions(self.attributes, evaluators, shared_data)
+        mixed_attrs = mix_attributes(evaluated_attrs, external_attrs, self.default_attrs)
+        self.draw(objects, scenes, {**mixed_attrs, **shared_data}, evaluators, shared_data, depth)
+
+    def draw(self, objects, scenes, inheritables, evaluators, shared_data, depth):
 
         # Render all objects
         for name, obj_attrs in self.obj_children.items():
             if name not in objects:
                 print("skip")
                 continue
-            objects[name].render(attributes, shared_data, inheritables)
+            objects[name].render(evaluators, shared_data, inheritables)
 
         # Render all scenes
+        if depth < 0:
+            return
         for name, scene_attrs in self.sc_children.items():
             if name not in scenes:
                 continue
-            scenes[name].render(attributes, objects, scenes, shared_data)  # Incomplete, needs parent attributes to be parsed and passed
+            scenes[name].render(evaluators, objects, scenes, shared_data, depth - 1, inheritables)  # Incomplete, needs parent attributes to be parsed and passed
 
     def __repr__(self):
         return f"Scene {self.name}"
@@ -283,7 +298,8 @@ class Project:
 
     def render(self, passthrough_attribs):
         self.attributes.update(passthrough_attribs)
-        base_scene = self.scenes["root"].render(self.attributes, self.objects, self.scenes, {**self.shared_data, **self.attributes})
+        base_scene = self.scenes["root"].render(self.attributes, self.objects, self.scenes, {**self.shared_data, **self.attributes},
+                                                self.setup.get("max_draw_depth", 5))
         return base_scene
 
     def load(self, file_name):
@@ -410,4 +426,5 @@ def main():
     return 0
 
 
-main()
+if __name__ == "__main__":
+    main()

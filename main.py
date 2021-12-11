@@ -12,6 +12,7 @@ def main():
 
     project = Project("base")
     project.load("Examples\\Mandelbrot set\\mandel.yaml")
+    # project.load("debug.yaml")
 
     frame_rate = project.setup["frame_rate"]
     elapsed_frames = 0

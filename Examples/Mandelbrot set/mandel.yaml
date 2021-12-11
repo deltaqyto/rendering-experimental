@@ -24,6 +24,13 @@ graph:
       shader_name:
         - const
         - mandelbrot
+      "uv_coords":
+        - - 4
+          - const
+        - 2
+        - 1.4
+        - -0.75
+        - 0
 
 
 setup:

@@ -1,7 +1,7 @@
 import math
 
 
-def parse_attribute_functions(attribs, eval_vals, shared_data):
+def parse_attribute_functions(attribs, eval_vals, shared_data, method_lookup):
     def printreturn(value):  # Handy function for the print lambda
         print(value)
         return value
@@ -9,14 +9,6 @@ def parse_attribute_functions(attribs, eval_vals, shared_data):
     if not attribs:
         return {}
     new_attribs = {}
-
-    # Lambda takes 4 inputs. A list of stack values, a list of provided constants, the dict of evaluators and the dict of shared data
-    method_lookup = {"const": [0, 1, lambda v, c, e, s: c[0]], "multiply": [1, 1, lambda v, c, e, s: c[0] * v[0]],
-                     "frame": [0, 0, lambda v, c, e, s: e["frames"]], "add": [1, 1, lambda v, c, e, s: c[0] + v[0]],
-                     "sine": [1, 0, lambda v, c, e, s: math.sin(v[0])], "floor": [1, 1, lambda v, c, e, s: c[0] * math.floor(v[0] / c[0])],
-                     "lookup": [0, 3, lambda v, c, e, s: s.get(c[0], {}).get(c[1]) if s.get(c[0]).get(c[1]) is not None else c[2]],
-                     "fsine": [0, 2, lambda v, c, e, s: c[1] * math.sin(c[0] * e["frames"])], "abs": [1, 0, lambda v, c, e, s: math.fabs(v[0])],
-                     "print": [1, 0, lambda v, c, e, s: printreturn(v[0])]}
 
     for name, attr in attribs.items():
         # Handle trivial case where no command group is provided
@@ -63,10 +55,9 @@ def parse_attribute_functions(attribs, eval_vals, shared_data):
     return new_attribs
 
 
-def mix_attributes(attrib_set_1, attrib_set_2, default_attrs):
+def mix_attributes(attrib_set_1, attrib_set_2, default_attrs, mix_behaviours):
     """Each name in default_attrs is returned with a value derived from attrib sets 1 and 2.
     Mix behaviors allows selection of the mix type for different names"""
-    mix_behaviours = {"alpha": "mult", "pos_x": "add", "pos_y": "add", "visible": "inherit", "unused": "ignore"}  # Should "inherit" by default
     out_attrs = {}
     for name, attr in default_attrs.items():
         mode = mix_behaviours.get(name, "inherit")

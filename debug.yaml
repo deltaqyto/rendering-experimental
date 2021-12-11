@@ -97,6 +97,17 @@ setup:
     - 0.3
   max_draw_depth:
     5
+  default_shader_name:
+    default
+
+maps:
+  - default_maps
+
+shaders:
+  default:
+    - fv
+    - default.file
+    - default.file
 
 shared_data:
   colors:
@@ -104,4 +115,3 @@ shared_data:
       - 1
       - 0.7
       - 0.9
-      

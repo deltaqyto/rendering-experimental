@@ -111,7 +111,7 @@ def main():
             screen.clear(True, True)
 
             debugShader.use()
-            project.render({"debug_draw_bounds": True, "frames": elapsed_frames, "shader": debugShader, "screen_x": size_x,
+            project.render({"debug_draw_bounds": True, "frames": elapsed_frames, "screen_x": size_x,
                             "screen_y": size_y, "aspect": aspect})
             screen.flip()
 

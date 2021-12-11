@@ -16,13 +16,21 @@ class Object:
         self.vao.free()
         self.vbo.free()
 
-    def render(self, evaluators, shared_data, external_attrs):
-        evaluated_attrs = parse_attribute_functions(self.attributes, evaluators, shared_data)
-        mixed_attrs = mix_attributes(evaluated_attrs, external_attrs, self.default_attrs)
+    def render(self, evaluators, shared_data, external_attrs, parse_map=None, mix_map=None):
+        evaluated_attrs = parse_attribute_functions(self.attributes, evaluators, shared_data, parse_map)
+        mixed_attrs = mix_attributes(evaluated_attrs, external_attrs, self.default_attrs, mix_map)
         self.draw({**mixed_attrs, **shared_data})
 
     def pad_list_to_size(self, lst, size, val=0):
         return lst + [val for _ in range(size - len(lst))]
+
+    def get_matrix(self, draw_attrs, enable_pos=True, enable_scale=True):
+        matrix = gl.Mat4(1.0)
+        if enable_pos:
+            matrix = gl.translate(matrix, gl.Vec3(draw_attrs.get("pos_x"), draw_attrs.get("pos_y"), 0))
+        if enable_scale:
+            matrix = gl.scale(matrix, gl.Vec3(draw_attrs.get("size_x") * draw_attrs.get("aspect"), draw_attrs.get("size_y"), 1))
+        return matrix
 
     def draw(self, draw_attrs):
         raise NotImplementedError()
@@ -55,13 +63,13 @@ class RectObject(Object):
 
     def draw(self, draw_attrs):
         # todo add line_weight, radius
-        matrix = gl.Mat4(1.0)
-        matrix = gl.translate(matrix, gl.Vec3(draw_attrs.get("pos_x"), draw_attrs.get("pos_y"), 0))
-        matrix = gl.scale(matrix, gl.Vec3(draw_attrs.get("size_x"), draw_attrs.get("size_y"), 1))
         self.vao.draw_mode(gl.Vao.Modes.fill)
 
         color = draw_attrs.get("color")
+        
+        matrix = self.get_matrix(draw_attrs)
 
+        draw_attrs.get("shader").use()
         draw_attrs.get("shader").setMat4("matrix", matrix)
         draw_attrs.get("shader").setVec3("color", *color)
 
@@ -143,11 +151,11 @@ class RegPoly(Object):
         self.vbo.add_data(self.vertices, gl.GL_const.dynamic_draw)
         self.ebo.add_data(self.indices, gl.GL_const.dynamic_draw)
 
-        matrix = gl.Mat4(1.0)
-        matrix = gl.translate(matrix, gl.Vec3(draw_attrs.get("pos_x"), draw_attrs.get("pos_y"), 0))
-        matrix = gl.scale(matrix, gl.Vec3(draw_attrs.get("size_x") * draw_attrs.get("aspect"), draw_attrs.get("size_y"), 1))
         self.vao.draw_mode(gl.Vao.Modes.fill)
 
+        matrix = self.get_matrix(draw_attrs)
+
+        draw_attrs.get("shader").use()
         draw_attrs.get("shader").setMat4("matrix", matrix)
         draw_attrs.get("shader").setVec3("color", *draw_attrs.get("color"))
 

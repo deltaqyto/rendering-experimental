@@ -211,3 +211,5 @@ class FractalRenderer(ShadedRect):
 
     def mid_render(self, draw_attrs):
         draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setInt("iterations_max", round(draw_attrs.get("max_iters")))
+        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setBool("screen_x", draw_attrs.get("screen_x"))
+        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setBool("screen_y", draw_attrs.get("screen_y"))

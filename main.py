@@ -2,9 +2,6 @@ import bindings as gl
 from project import Project
 
 # Current priorities, in order:
-# todo Find a method of loading the 3 mapping dicts
-# todo split into class files
-
 
 def main():
     scale = 1
@@ -67,7 +64,7 @@ def main():
             screen.set_should_close(True)
         if screen.get_key_state(gl.Screen.Keys.Space) == gl.Screen.PressModes.press:
             if lastspace:
-                step_mode = "play" if step_mode == "pause" else "pause"  ## Fix only rising edge
+                step_mode = "play" if step_mode == "pause" else "pause"
             lastspace = False
         else:
             lastspace = True

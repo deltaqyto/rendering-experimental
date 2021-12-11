@@ -1,6 +1,3 @@
-Todo:
-	Add shader table, support either name or direct strings
-
 Yaml structure:
 -------x--------
 
@@ -15,6 +12,16 @@ Scene table:
 
 Setup info:
 	- Framerate
+
+maps:
+    - mapfile 1
+    - mapfile 2
+    ...
+
+shaders:
+	name:
+		- type str
+		- code 1
 
 shared_data:
   Color table:
@@ -141,3 +148,30 @@ Attribute handlers: v2
 	will provide the output [2, 6]
 
 	If a command would yield a vector of the same degree as the vector number, only yield the relevant index of that vector
+
+-----------
+
+Maps:
+	The maps provide a way to integrate user defined methods into the renderer similar to python's import statement
+	This requires an entry in the map section with a relevant python filename, bar the extension
+	The file with that name must present a get_maps() function which returns a dict of maps, marked with their type:
+
+	parse: a dict of parser functions described in attr handling
+	mix: a dict of mixing functions described in attr handling
+	objects: a dict of object classes and their names
+
+-----------
+
+Shaders:
+	The shader table is compiled at runtime and provided via the "custom_shaders" name in the attributes
+
+	To add a shader entry, provide a name and type string like the example:
+
+	pretty_color:
+		- fv
+		- my_frag_shader_file_name.file
+		- actual vertex shader code ... stuff
+
+	The first line specifies what type of shader each line is, where letters like f, v, t, g map to fragment, vertex, geometry
+	Each following line holds the code or a file name. If the code is held directly, no modifications are needed.
+	If a file name is provided, it must have no extension and end with .file. The extension is replaced with .frag, .vert, .geom as required

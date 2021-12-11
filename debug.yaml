@@ -5,7 +5,7 @@ graph:
       self:
         pos_y:
           - fsine
-          - 0.001
+          - 0.01
           - 0.8
       scenes:
         sub:
@@ -15,7 +15,7 @@ graph:
       self:
         pos_x:
           - fsine
-          - 0.003
+          - 0.03
           - 0.8
       scenes:
       objects:
@@ -31,17 +31,17 @@ graph:
           - sine
           - multiply
 
-        - 0.002
+        - 0.02
         - 0.2
-        - 0.004
+        - 0.04
         - 0.5
-        - 0.001
+        - 0.01
         - 1
       faces:
         - - fsine
           - floor
           - abs
-        - 0.0003
+        - 0.003
         - 20
         - 1
     p2:
@@ -63,7 +63,7 @@ graph:
           - abs
           - floor
           - add
-        - 0.003
+        - 0.03
         - 1
         - 3
     r1:
@@ -79,18 +79,18 @@ graph:
         - 10
       pos_x:
         - fsine
-        - 0.02
+        - 0.2
         - 0.1
       size_x:
         - const
         - 0.2
       size_y:
         - fsine
-        - 0.0002
+        - 0.002
         - 0.6
 
 setup:
-  frame_rate: 30
+  frame_rate: 60
   background_color:
     - 0.2
     - 0.3

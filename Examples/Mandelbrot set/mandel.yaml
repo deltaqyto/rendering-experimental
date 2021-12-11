@@ -1,0 +1,54 @@
+---
+graph:
+  scenes:
+    root:
+      self:
+      scenes:
+        sub:
+      objects:
+        sr1:
+  objects:
+    sr1:
+      type: fractalrect
+      max_iters:
+        - - fsine
+          - abs
+        - 0.02
+        - 40
+      size_x:
+        - const
+        - 2
+      size_y:
+        - const
+        - 1.1
+      shader_name:
+        - const
+        - mandelbrot
+
+
+setup:
+  frame_rate: 60
+  background_color:
+    - 0.2
+    - 0.3
+    - 0.3
+  max_draw_depth:
+    5
+  default_shader_name:
+    default
+
+maps:
+  - default_maps
+
+shaders:
+  default:
+    - fv
+    - default.file
+    - default.file
+  mandelbrot:
+    - vf
+    - Examples\Mandelbrot set\mandel.file
+    - Examples\Mandelbrot set\mandel.file
+
+shared_data:
+  colors:

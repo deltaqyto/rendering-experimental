@@ -14,7 +14,7 @@ def main():
     screen = gl.Screen(4, 6, size_x, size_y, "example")
 
     project = Project("base")
-    project.load("debug.yaml")
+    project.load("Examples\\Mandelbrot set\\mandel.yaml")
 
     frame_rate = project.setup["frame_rate"]
     elapsed_frames = 0
@@ -25,10 +25,6 @@ def main():
 
     if not screen.screen_is_valid():
         raise RuntimeError("Screen was not initialised properly")
-
-    debugShader = gl.Shader("default.vert", "default.frag")
-
-    debugShader.use()
 
     lastX = 0
     lastY = 0
@@ -110,7 +106,6 @@ def main():
             screen.set_color(*background_color, 1)
             screen.clear(True, True)
 
-            debugShader.use()
             project.render({"debug_draw_bounds": True, "frames": elapsed_frames, "screen_x": size_x,
                             "screen_y": size_y, "aspect": aspect})
             screen.flip()

@@ -1,5 +1,5 @@
 import math
-from objects import Object, RectObject, RegPoly, Circle
+from objects import Object, RectObject, RegPoly, Circle, ShadedRect, FractalRenderer
 
 
 def printreturn(value):  # Handy function for the print lambda
@@ -16,6 +16,6 @@ def get_maps():
                          "print": [1, 0, lambda v, c, e, s: printreturn(v[0])]}
 
     mix_map = {"alpha": "mult", "pos_x": "add", "pos_y": "add", "visible": "inherit", "unused": "ignore"}  # Should "inherit" by default
-    object_map = {"rect": RectObject, "regpoly": RegPoly, "circle": Circle}
+    object_map = {"rect": RectObject, "regpoly": RegPoly, "circle": Circle, "shadrect": ShadedRect, "fractalrect": FractalRenderer}
 
     return {"parse": parse_map, "mix": mix_map, "objects": object_map}

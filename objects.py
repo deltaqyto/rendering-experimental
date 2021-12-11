@@ -35,6 +35,9 @@ class Object:
     def draw(self, draw_attrs):
         raise NotImplementedError()
 
+    def mid_render(self, draw_attrs):
+        pass
+
     def __repr__(self):
         return f"{self.type} object {self.name}"
 
@@ -66,12 +69,14 @@ class RectObject(Object):
         self.vao.draw_mode(gl.Vao.Modes.fill)
 
         color = draw_attrs.get("color")
-        
+
         matrix = self.get_matrix(draw_attrs)
 
         draw_attrs.get("shader").use()
         draw_attrs.get("shader").setMat4("matrix", matrix)
         draw_attrs.get("shader").setVec3("color", *color)
+
+        self.mid_render(draw_attrs)
 
         self.vao.draw_verts(0, 0, True)
 
@@ -159,6 +164,8 @@ class RegPoly(Object):
         draw_attrs.get("shader").setMat4("matrix", matrix)
         draw_attrs.get("shader").setVec3("color", *draw_attrs.get("color"))
 
+        self.mid_render(draw_attrs)
+
         self.vao.draw_elements(0, 0, True)
 
 
@@ -166,3 +173,41 @@ class Circle(RegPoly):
     def __init__(self, name, attributes):
         super().__init__(name, attributes)
         self.default_attrs["faces"][0] = self.default_attrs["max_faces"][0]  # At faces > 20 looks like a circle enough
+
+
+class ShadedRect(Object):
+    def __init__(self, name, attributes):
+        super().__init__(name, attributes)
+        self.vao.set_row_size(2)
+        self.vao.assign_data(0, 2)
+        self.vao.enable()
+        self.vertices = [-1.0, -1.0, 1.0, 1.0, -1.0, 1.0,
+                         -1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
+        self.vbo.add_data(self.vertices, gl.GL_const.static_draw)
+        self.vao.add_vbo(self.vbo)
+
+        self.default_attrs = {"size_x": [0.5, "horizontal scale factor"], "size_y": [0.5, "vertical scale factor"],
+                              "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"],
+                              "shader_name": ["default", "name of shader to use"]}
+        self.type = "Shaded Rectangle"
+
+    def draw(self, draw_attrs):
+        self.vao.draw_mode(gl.Vao.Modes.fill)
+
+        matrix = self.get_matrix(draw_attrs)
+        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).use()
+        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setMat4("matrix", matrix)
+
+        self.mid_render(draw_attrs)
+
+        self.vao.draw_verts(0, 0, True)
+
+
+class FractalRenderer(ShadedRect):
+    def __init__(self, name, attributes):
+        super().__init__(name, attributes)
+        self.type = "Fractal Rectangle"
+        self.default_attrs["max_iters"] = [20, "maximum iteration count"]
+
+    def mid_render(self, draw_attrs):
+        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setInt("iterations_max", round(draw_attrs.get("max_iters")))

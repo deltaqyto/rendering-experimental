@@ -11,8 +11,8 @@ def main():
     screen = gl.Screen(4, 6, size_x, size_y, "example")
 
     project = Project("base")
-    project.load("Examples\\Mandelbrot set\\mandel.yaml")
-    # project.load("debug.yaml")
+    # project.load("Examples\\Mandelbrot set\\mandel.yaml")
+    project.load("debug.yaml")
 
     frame_rate = project.setup["frame_rate"]
     elapsed_frames = 0

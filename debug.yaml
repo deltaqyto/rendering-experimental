@@ -59,12 +59,17 @@ graph:
 
       faces:
         - - frame
-          - multiply
-          - abs
-          - floor
-          - add
-        - 0.03
-        - 1
+          - const_group
+        - - 5
+          - 10
+          - 7
+          - 15
+          - 9
+        - - 0
+          - 50
+          - 100
+          - 150
+          - 200
         - 3
     r1:
       type: rect

@@ -61,7 +61,7 @@ class RectObject(Object):
         self.vao.set_row_size(2)
         self.vao.assign_data(0, 2)
         self.vao.enable()
-        self.vertices = [-7.0, -1.0, 1.0, 1.0, -1.0, 1.0,
+        self.vertices = [-1.0, -1.0, 1.0, 1.0, -1.0, 1.0,
                          -1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
         self.vbo.add_data(self.vertices, gl.GL_const.static_draw)
         self.vao.add_vbo(self.vbo)

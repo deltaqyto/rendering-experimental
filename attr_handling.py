@@ -68,5 +68,7 @@ def mix_attributes(attrib_set_1, attrib_set_2, default_attrs, mix_behaviours):
 
         elif mode == "inherit":
             out_attrs[name] = attr[0] if name not in attrib_set_1 else attrib_set_1[name]
+        elif mode == "ignore":
+            out_attrs[name] = attr[0] if name not in attrib_set_2 else attrib_set_2[name]
 
     return out_attrs

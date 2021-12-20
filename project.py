@@ -20,15 +20,25 @@ class Project:
         self.shaders = {}
         self.default_shader_name = "default"
 
+        self.target_scene = "root"
+
     def update_object_types(self, types):
         self.object_map.update(types)
+
+    def enable_edit(self):
+        self.target_scene = "editor"
+        self.scenes["editor"] = Scene("editor", {"root": None}, self_attrs={"size_x": ["const", 0.8], "size_y": ["const", 0.8]})  # todo implement
+
+    def disable_edit(self):
+        self.target_scene = "root"
+        self.scenes.pop("editor")
 
     def render(self, passthrough_attribs):
         self.attributes.update(passthrough_attribs)
         self.attributes["shader"] = self.shaders[self.default_shader_name]
         self.attributes["custom_shaders"] = self.shaders
-        base_scene = self.scenes["root"].render(self.attributes, self.objects, self.scenes, {**self.shared_data, **self.attributes},
-                                                self.setup.get("max_draw_depth", 5), parse_map=self.parse_map, mix_map=self.mix_map)
+        base_scene = self.scenes[self.target_scene].render(self.attributes, self.objects, self.scenes, {**self.shared_data, **self.attributes},
+                                                           self.setup.get("max_draw_depth", 5), parse_map=self.parse_map, mix_map=self.mix_map)
         return base_scene
 
     def load(self, file_name):
@@ -40,6 +50,7 @@ class Project:
         self.setup = {}
         with open(file_name) as file:
             data = yaml.load(file, Loader=yaml.FullLoader)
+            self.data_backup = data
 
             # Handy contractions
             scenes = data["graph"]["scenes"]

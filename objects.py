@@ -1,6 +1,6 @@
 import bindings as gl
 import math
-from attr_handling import parse_attribute_functions, mix_attributes
+from attr_handling import parse_attribute_functions, mix_attributes, clip_rects
 
 
 class Object:
@@ -10,7 +10,9 @@ class Object:
         self.vbo = gl.Vbo()
         self.type = "Undef"
         self.attributes = attributes
-        self.default_attrs = {}
+        self.default_attrs = {"size_x": [0.5, "horizontal scale factor"], "size_y": [0.5, "vertical scale factor"],
+                              "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"],
+                              "clip_rect": [[-1, -1, 1, 1], "rectangle that marks the drawable border of the object"], "aspect": [1, "aspect ratio"]}
 
     def __del__(self):
         self.vao.free()
@@ -26,11 +28,17 @@ class Object:
 
     def get_matrix(self, draw_attrs, enable_pos=True, enable_scale=True):
         matrix = gl.Mat4(1.0)
+        if enable_scale:
+            matrix = gl.scale(matrix, gl.Vec3(draw_attrs.get("size_x"), draw_attrs.get("size_y"), 1))
         if enable_pos:
             matrix = gl.translate(matrix, gl.Vec3(draw_attrs.get("pos_x"), draw_attrs.get("pos_y"), 0))
-        if enable_scale:
-            matrix = gl.scale(matrix, gl.Vec3(draw_attrs.get("size_x") * draw_attrs.get("aspect"), draw_attrs.get("size_y"), 1))
         return matrix
+
+    def prep_shader(self, shader, matrix, clip_rect, aspect):
+        shader.use()
+        shader.setMat4("matrix", matrix)
+        shader.setVec4("clip_rect", *clip_rects(*[c for c in clip_rect if c is not None]))
+        shader.setFloat("aspect", aspect)
 
     def draw(self, draw_attrs):
         raise NotImplementedError()
@@ -59,9 +67,7 @@ class RectObject(Object):
         self.vbo.add_data(self.vertices, gl.GL_const.static_draw)
         self.vao.add_vbo(self.vbo)
 
-        self.default_attrs = {"size_x": [0.5, "horizontal scale factor"], "size_y": [0.5, "vertical scale factor"],
-                              "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"],
-                              "color": [(1, 0, 1), "primary color of shape"]}
+        self.default_attrs.update({"color": [(1, 0, 1), "primary color of shape"]})
         self.type = "Rectangle"
 
     def draw(self, draw_attrs):
@@ -72,8 +78,7 @@ class RectObject(Object):
 
         matrix = self.get_matrix(draw_attrs)
 
-        draw_attrs.get("shader").use()
-        draw_attrs.get("shader").setMat4("matrix", matrix)
+        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs.get("clip_rect"), draw_attrs.get("aspect"))
         draw_attrs.get("shader").setVec3("color", *color)
 
         self.mid_render(draw_attrs)
@@ -88,10 +93,8 @@ class RegPoly(Object):
         self.vao.assign_data(0, 2)
         self.ebo = gl.Ebo()
 
-        self.default_attrs = {"size_x": [0.5, "horizontal scale factor"], "size_y": [0.5, "vertical scale factor"],
-                              "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"],
-                              "color": [(1, 0, 1), "primary color of shape"], "faces": [4, "number of sides on polygon"],
-                              "max_faces": [64, "largest number of faces the shape can have"]}
+        self.default_attrs.update({"color": [(1, 0, 1), "primary color of shape"], "faces": [4, "number of sides on polygon"],
+                                   "max_faces": [64, "largest number of faces the shape can have"]})
 
         self.vertices = [0 for _ in range(self.default_attrs["max_faces"][0] * 2 + 2)]
         self.indices = [0 for _ in range(self.default_attrs["max_faces"][0] * 3)]
@@ -147,7 +150,7 @@ class RegPoly(Object):
 
     def draw(self, draw_attrs):
         faces = max(3, min(draw_attrs.get("faces"), draw_attrs.get("max_faces")))
-        self.vertices = [0, 0] + self.distribute(0.8, 0.8, faces)
+        self.vertices = [0, 0] + self.distribute(draw_attrs.get("size_x"), draw_attrs.get("size_y"), faces)
         self.indices = self.tri_fan_indices(faces)
 
         self.vertices = self.pad_list_to_size(self.vertices, draw_attrs.get("max_faces") * 2 + 2)
@@ -160,8 +163,7 @@ class RegPoly(Object):
 
         matrix = self.get_matrix(draw_attrs)
 
-        draw_attrs.get("shader").use()
-        draw_attrs.get("shader").setMat4("matrix", matrix)
+        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs.get("clip_rect"), draw_attrs.get("aspect"))
         draw_attrs.get("shader").setVec3("color", *draw_attrs.get("color"))
 
         self.mid_render(draw_attrs)
@@ -178,29 +180,51 @@ class Circle(RegPoly):
 class ShadedRect(Object):
     def __init__(self, name, attributes):
         super().__init__(name, attributes)
-        self.vao.set_row_size(2)
-        self.vao.assign_data(0, 2)
-        self.vao.enable()
-        self.vertices = [-1.0, -1.0, 1.0, 1.0, -1.0, 1.0,
-                         -1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
-        self.vbo.add_data(self.vertices, gl.GL_const.static_draw)
-        self.vao.add_vbo(self.vbo)
 
-        self.default_attrs = {"size_x": [0.5, "horizontal scale factor"], "size_y": [0.5, "vertical scale factor"],
-                              "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"],
-                              "shader_name": ["default", "name of shader to use"]}
+        self.vao.set_row_size(4)
+        self.vao.assign_data(0, 2)
+        self.vao.assign_data(1, 2)
+
+        self.ebo = gl.Ebo()
+
+        self.vertices = [-1, -1, 1, 1, -1, 1, 1, -1]
+        self.indices = [0, 1, 2, 0, 3, 1]
+
+        self.ebo.add_data(self.indices, gl.GL_const.static_draw)
+        self.vbo.add_data(self.vertices, gl.GL_const.dynamic_draw)
+
+        self.vao.add_vbo(self.vbo)
+        self.vao.add_ebo(self.ebo)
+
+        self.default_attrs.update({"shader_name": ["default", "name of shader to use"],
+                                   "uv_coords": [[2, 2, 0, 0], "corners of the drawn region, passed to the shader as uv_coords"]})
         self.type = "Shaded Rectangle"
+
+    def zip_coords(self, v1, v2):
+        # First create pairs of 2 items out of both v1 and v2. Zip these, then apply two layers of flattening
+        return [w for e in [i for q in zip([(v1[2 * m], v1[2 * m + 1]) for m in range(round(len(v1) / 2))],
+                                           [(v2[2 * n], v2[2 * n + 1]) for n in range(round(len(v2) / 2))]) for i in q] for w in e]
+
+    def convert_dims_to_rect_verts(self, dims):
+        out = [-dims[0] + dims[2], -dims[1] + dims[3], dims[0] + dims[2], dims[1] + dims[3],
+               -dims[0] + dims[2], dims[1] + dims[3], dims[0] + dims[2], -dims[1] + dims[3]]
+        return out
+
+    def __del__(self):
+        self.ebo.free()
+        super().__del__()
 
     def draw(self, draw_attrs):
         self.vao.draw_mode(gl.Vao.Modes.fill)
 
         matrix = self.get_matrix(draw_attrs)
-        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).use()
-        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setMat4("matrix", matrix)
+        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs.get("clip_rect"), draw_attrs.get("aspect"))
+
+        self.vbo.add_data(self.zip_coords(self.vertices, self.convert_dims_to_rect_verts(draw_attrs.get("uv_coords"))), gl.GL_const.dynamic_draw)
 
         self.mid_render(draw_attrs)
 
-        self.vao.draw_verts(0, 0, True)
+        self.vao.draw_elements(0, 0, True)
 
 
 class FractalRenderer(ShadedRect):
@@ -209,5 +233,19 @@ class FractalRenderer(ShadedRect):
         self.type = "Fractal Rectangle"
         self.default_attrs["max_iters"] = [20, "maximum iteration count"]
 
+    def draw(self, draw_attrs):
+        self.vao.draw_mode(gl.Vao.Modes.fill)
+        self.vbo.add_data(self.zip_coords(self.vertices, self.convert_dims_to_rect_verts(draw_attrs.get("uv_coords"))), gl.GL_const.dynamic_draw)
+
+        matrix = self.get_matrix(draw_attrs)
+        self.prep_shader(draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")), matrix,
+                         draw_attrs.get("clip_rect"), draw_attrs.get("aspect"))
+
+        self.mid_render(draw_attrs)
+
+        self.vao.draw_elements(0, 0, True)
+
     def mid_render(self, draw_attrs):
         draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setInt("iterations_max", round(draw_attrs.get("max_iters")))
+        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setInt("screen_x", draw_attrs.get("screen_x"))
+        draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")).setInt("screen_y", draw_attrs.get("screen_y"))

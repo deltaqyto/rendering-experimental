@@ -1,11 +1,4 @@
-import math
-
-
 def parse_attribute_functions(attribs, eval_vals, shared_data, method_lookup):
-    def printreturn(value):  # Handy function for the print lambda
-        print(value)
-        return value
-
     if not attribs:
         return {}
     new_attribs = {}
@@ -68,5 +61,20 @@ def mix_attributes(attrib_set_1, attrib_set_2, default_attrs, mix_behaviours):
 
         elif mode == "inherit":
             out_attrs[name] = attr[0] if name not in attrib_set_1 else attrib_set_1[name]
+        elif mode == "ignore":
+            out_attrs[name] = attr[0] if name not in attrib_set_2 else attrib_set_2[name]
+        elif mode == "passthrough":
+            out_attrs[name] = [attrib_set_1.get(name), attrib_set_2.get(name), attr[0]]
+        elif mode == "inherit_mult":
+            out_attrs[name] = attrib_set_1[name] * attr[0] if name in attrib_set_1 else attr[0]
+        elif mode == "ignore_mult":
+            out_attrs[name] = attrib_set_2[name] * attr[0] if name in attrib_set_2 else attr[0]
 
     return out_attrs
+
+
+def clip_rects(*args):
+    if not args:
+        print("no args")
+        return [-1, -1, 1, 1]
+    return [max([a[0] for a in args]), max([a[1] for a in args]), min([a[2] for a in args]), min([a[3] for a in args])]

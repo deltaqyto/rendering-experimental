@@ -1,4 +1,4 @@
-from attr_handling import parse_attribute_functions, mix_attributes
+from attr_handling import parse_attribute_functions, mix_attributes, clip_rects
 
 
 class Scene:
@@ -8,8 +8,10 @@ class Scene:
         self.attributes = self_attrs if self_attrs is not None else {}
         self.name = name
 
-        self.default_attrs = {"size_x": [0.5, "horizontal scale factor"], "size_y": [0.5, "vertical scale factor"],
-                              "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"]}
+        self.default_attrs = {"size_x": [1, "horizontal scale factor"], "size_y": [1, "vertical scale factor"],
+                              "clip_size_x": [1, "size of clip rect along x"], "clip_size_y": [1, "size of clip rect along y"],
+                              "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"],
+                              "clip_rect": [[-1, -1, 1, 1], "rectangle that marks the drawable border of the scene"], "aspect": [1, "aspect ratio"]}
 
     def add_scene(self, child):
         self.sc_children.append(child)
@@ -24,6 +26,10 @@ class Scene:
         self.draw(objects, scenes, {**mixed_attrs, **shared_data}, evaluators, shared_data, depth, parse_map, mix_map)
 
     def draw(self, objects, scenes, inheritables, evaluators, shared_data, depth, parse_map, mix_map):
+
+        gen_clip_rect = [- inheritables["clip_size_x"] * inheritables["size_x"], - inheritables["clip_size_y"] * inheritables["size_y"],
+                         inheritables["clip_size_x"] * inheritables["size_x"], inheritables["clip_size_y"] * inheritables["size_y"]]
+        inheritables["clip_rect"] = clip_rects(gen_clip_rect, *[i for i in inheritables["clip_rect"] if i is not None])
 
         # Render all objects
         for name, obj_attrs in self.obj_children.items():

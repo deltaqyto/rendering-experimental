@@ -30,11 +30,13 @@ def main():
     last_time = 0
     time_since_last_frame = 0
     mouseBound = False
+    do_edit = False
     lastMouse = gl.Screen.PressModes.release
 
     lastspace = False
     lastleft = False
     lastright = False
+    laste = False
 
     force_draw = True
 
@@ -84,6 +86,19 @@ def main():
             lastright = False
         else:
             lastright = True
+        if screen.get_key_state(gl.Screen.Keys.e) == gl.Screen.PressModes.press:
+            if laste:
+                if do_edit:
+                    print("Disabling editor")
+                    project.disable_edit()
+                    do_edit = False
+                else:
+                    print("Enabling editor")
+                    project.enable_edit()
+                    do_edit = True
+            laste = False
+        else:
+            laste = True
 
         screen.set_mouse_capture(mouseBound)
 
@@ -103,7 +118,6 @@ def main():
             time_since_last_frame = 0
             screen.set_color(*background_color, 1)
             screen.clear(True, True)
-
             project.render({"debug_draw_bounds": True, "frames": elapsed_frames, "screen_x": size_x,
                             "screen_y": size_y, "aspect": aspect})
             screen.flip()

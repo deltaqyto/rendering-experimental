@@ -1,6 +1,6 @@
 import bindings as gl
 import math
-from attr_handling import parse_attribute_functions, mix_attributes
+from attr_handling import parse_attribute_functions, mix_attributes, clip_rects
 
 
 class Object:
@@ -12,7 +12,7 @@ class Object:
         self.attributes = attributes
         self.default_attrs = {"size_x": [0.5, "horizontal scale factor"], "size_y": [0.5, "vertical scale factor"],
                               "pos_x": [0, "offset from center along x"], "pos_y": [0, "offset from center along y"],
-                              "clip_rect": [[-1, -1, 1, 1], "rectangle that marks the drawable border of the object"]}
+                              "clip_rect": [[-1, -1, 1, 1], "rectangle that marks the drawable border of the object"], "aspect": [1, "aspect ratio"]}
 
     def __del__(self):
         self.vao.free()
@@ -28,16 +28,17 @@ class Object:
 
     def get_matrix(self, draw_attrs, enable_pos=True, enable_scale=True):
         matrix = gl.Mat4(1.0)
+        if enable_scale:
+            matrix = gl.scale(matrix, gl.Vec3(draw_attrs.get("size_x"), draw_attrs.get("size_y"), 1))
         if enable_pos:
             matrix = gl.translate(matrix, gl.Vec3(draw_attrs.get("pos_x"), draw_attrs.get("pos_y"), 0))
-        if enable_scale:
-            matrix = gl.scale(matrix, gl.Vec3(draw_attrs.get("size_x") * draw_attrs.get("aspect"), draw_attrs.get("size_y"), 1))
         return matrix
 
-    def prep_shader(self, shader, matrix, draw_attrs):
+    def prep_shader(self, shader, matrix, clip_rect, aspect):
         shader.use()
         shader.setMat4("matrix", matrix)
-        shader.setVec4("clip_bounds", *draw_attrs.get("clip_rect"))
+        shader.setVec4("clip_rect", *clip_rects(*[c for c in clip_rect if c is not None]))
+        shader.setFloat("aspect", aspect)
 
     def draw(self, draw_attrs):
         raise NotImplementedError()
@@ -77,7 +78,7 @@ class RectObject(Object):
 
         matrix = self.get_matrix(draw_attrs)
 
-        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs)
+        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs.get("clip_rect"), draw_attrs.get("aspect"))
         draw_attrs.get("shader").setVec3("color", *color)
 
         self.mid_render(draw_attrs)
@@ -149,7 +150,7 @@ class RegPoly(Object):
 
     def draw(self, draw_attrs):
         faces = max(3, min(draw_attrs.get("faces"), draw_attrs.get("max_faces")))
-        self.vertices = [0, 0] + self.distribute(0.8, 0.8, faces)
+        self.vertices = [0, 0] + self.distribute(draw_attrs.get("size_x"), draw_attrs.get("size_y"), faces)
         self.indices = self.tri_fan_indices(faces)
 
         self.vertices = self.pad_list_to_size(self.vertices, draw_attrs.get("max_faces") * 2 + 2)
@@ -162,7 +163,7 @@ class RegPoly(Object):
 
         matrix = self.get_matrix(draw_attrs)
 
-        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs)
+        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs.get("clip_rect"), draw_attrs.get("aspect"))
         draw_attrs.get("shader").setVec3("color", *draw_attrs.get("color"))
 
         self.mid_render(draw_attrs)
@@ -196,8 +197,7 @@ class ShadedRect(Object):
         self.vao.add_ebo(self.ebo)
 
         self.default_attrs.update({"shader_name": ["default", "name of shader to use"],
-                                   "uv_coords": [[2, 2, 0, 0],
-                                                 "corners of the drawn region, passed to the shader as uv_coords"]})
+                                   "uv_coords": [[2, 2, 0, 0], "corners of the drawn region, passed to the shader as uv_coords"]})
         self.type = "Shaded Rectangle"
 
     def zip_coords(self, v1, v2):
@@ -208,7 +208,6 @@ class ShadedRect(Object):
     def convert_dims_to_rect_verts(self, dims):
         out = [-dims[0] + dims[2], -dims[1] + dims[3], dims[0] + dims[2], dims[1] + dims[3],
                -dims[0] + dims[2], dims[1] + dims[3], dims[0] + dims[2], -dims[1] + dims[3]]
-        print(out)
         return out
 
     def __del__(self):
@@ -219,7 +218,7 @@ class ShadedRect(Object):
         self.vao.draw_mode(gl.Vao.Modes.fill)
 
         matrix = self.get_matrix(draw_attrs)
-        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs)
+        self.prep_shader(draw_attrs.get("shader"), matrix, draw_attrs.get("clip_rect"), draw_attrs.get("aspect"))
 
         self.vbo.add_data(self.zip_coords(self.vertices, self.convert_dims_to_rect_verts(draw_attrs.get("uv_coords"))), gl.GL_const.dynamic_draw)
 
@@ -239,7 +238,8 @@ class FractalRenderer(ShadedRect):
         self.vbo.add_data(self.zip_coords(self.vertices, self.convert_dims_to_rect_verts(draw_attrs.get("uv_coords"))), gl.GL_const.dynamic_draw)
 
         matrix = self.get_matrix(draw_attrs)
-        self.prep_shader(draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")), matrix, draw_attrs)
+        self.prep_shader(draw_attrs.get("custom_shaders").get(draw_attrs.get("shader_name")), matrix,
+                         draw_attrs.get("clip_rect"), draw_attrs.get("aspect"))
 
         self.mid_render(draw_attrs)
 

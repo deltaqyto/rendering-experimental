@@ -7,6 +7,12 @@ graph:
           - fsine
           - 0.01
           - 0.8
+        clip_size_x:
+          - const
+          - 40
+        clip_size_y:
+          - const
+          - 40
       scenes:
         sub:
       objects:
@@ -46,9 +52,6 @@ graph:
         - 1
     p2:
       type: regpoly
-      pos_x:
-        - const
-        - 0.4
       color:
         - - lookup
         - colors
@@ -56,6 +59,12 @@ graph:
         - - 1
           - 1
           - 1
+      size_x:
+        - const
+        - 0.4
+      size_y:
+        - const
+        - 0.4
 
       faces:
         - - frame

@@ -2,12 +2,14 @@
 
 
 in vec2 lim_pos;
+in vec2 bPos;
 out vec4 frag_color;
 
 uniform int iterations_max;
 
 uniform int screen_x;
 uniform int screen_y;
+uniform vec4 clip_bounds;
 
 #define supersample 4
 
@@ -48,6 +50,9 @@ vec4 return_color(vec2 offset) {
 }
 
 void main() {
+    if (bPos.x < clip_bounds.x || bPos.x > clip_bounds.z || bPos.y < clip_bounds.y || bPos.y > clip_bounds.w){
+        //discard;
+    }
     vec4 cumulative_col = vec4(0.0, 0.0, 0.0, 0.0);
     for (int y = 0; y < supersample; ++y){
         for (int x = 0; x < supersample; ++x){

@@ -17,14 +17,14 @@ graph:
         - 40
       size_x:
         - const
-        - 2
+        - 1.5
       size_y:
         - const
-        - 1.1
+        - 1
       shader_name:
         - const
         - mandelbrot
-      "uv_coords":
+      uv_coords:
         - - 4
           - const
         - 2
@@ -49,7 +49,7 @@ maps:
 
 shaders:
   default:
-    - fv
+    - vf
     - default.file
     - default.file
   mandelbrot:

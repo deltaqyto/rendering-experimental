@@ -21,7 +21,7 @@ class Object:
     def render(self, evaluators, shared_data, external_attrs, parse_map=None, mix_map=None):
         evaluated_attrs = parse_attribute_functions(self.attributes, evaluators, shared_data, parse_map)
         mixed_attrs = mix_attributes(evaluated_attrs, external_attrs, self.default_attrs, mix_map)
-        self.draw({**mixed_attrs, **shared_data})
+        self.draw({**mixed_attrs, **shared_data}, evaluated_attrs, external_attrs)
 
     def pad_list_to_size(self, lst, size, val=0):
         return lst + [val for _ in range(size - len(lst))]
@@ -40,7 +40,7 @@ class Object:
         shader.setVec4("clip_rect", *clip_rects(*[c for c in clip_rect if c is not None]))
         shader.setFloat("aspect", aspect)
 
-    def draw(self, draw_attrs):
+    def draw(self, draw_attrs, evaluated_attrs, inherited_attrs):
         raise NotImplementedError()
 
     def mid_render(self, draw_attrs):
@@ -61,18 +61,32 @@ class RectObject(Object):
         super().__init__(name, attributes)
         self.vao.set_row_size(2)
         self.vao.assign_data(0, 2)
-        self.vao.enable()
-        self.vertices = [-1.0, -1.0, 1.0, 1.0, -1.0, 1.0,
-                         -1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
-        self.vbo.add_data(self.vertices, gl.GL_const.static_draw)
-        self.vao.add_vbo(self.vbo)
+        self.ebo = gl.Ebo()
 
-        self.default_attrs.update({"color": [(1, 0, 1), "primary color of shape"]})
+        self.vertices = [-1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0]
+        self.indices = [0, 6, 2, 0, 4, 6,
+                        2, 5, 1, 2, 6, 5,
+                        1, 7, 3, 1, 5, 7,
+                        3, 4, 0, 3, 7, 4]
+
+        self.vbo.add_data(self.vertices, gl.GL_const.dynamic_draw)
+        self.ebo.add_data(self.indices, gl.GL_const.dynamic_draw)
+
+        self.vao.add_vbo(self.vbo)
+        self.vao.add_ebo(self.ebo)
+
+        self.default_attrs.update({"color": [(1, 0, 1), "primary color of shape"], "line_weight": [0.1, "Thickness of the shape's bounds"],
+                                   "edge_mode": ["stable", "expected behavior of the outline when the shape distorts"]})
         self.type = "Rectangle"
 
-    def draw(self, draw_attrs):
-        # todo add line_weight, radius
+    def draw(self, draw_attrs, evaluated_attrs, inherited_attrs):
+        # todo add radius
         self.vao.draw_mode(gl.Vao.Modes.fill)
+
+        self.vertices, self.indices = self.get_verts_elements(draw_attrs, evaluated_attrs)
+
+        self.vbo.add_data(self.vertices, gl.GL_const.dynamic_draw)
+        self.ebo.add_data(self.indices, gl.GL_const.dynamic_draw)
 
         color = draw_attrs.get("color")
 
@@ -83,7 +97,30 @@ class RectObject(Object):
 
         self.mid_render(draw_attrs)
 
-        self.vao.draw_verts(0, 0, True)
+        self.vao.draw_elements(0, 0, True)
+
+    def get_verts_elements(self, draw_attrs, evaluated_attrs):
+        verts = [-1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0]
+        elements = [0, 1, 2, 0, 3, 1]
+        if draw_attrs.get("line_weight") is not None:
+            mode = draw_attrs.get("edge_mode")
+            if mode == "standard":
+                w = 1 - draw_attrs.get("line_weight")
+                h = w
+            elif mode == "stable":  # todo negative and values around the line weight. Corners get bevelled
+                w = 1 - ((draw_attrs.get("line_weight") / evaluated_attrs.get("size_x")) if draw_attrs.get("size_x") != 0 else 0)
+                h = 1 - ((draw_attrs.get("line_weight") / evaluated_attrs.get("size_y")) if draw_attrs.get("size_y") != 0 else 0)
+            else:
+                w = 1 - draw_attrs.get("line_weight")
+                h = w
+
+            verts += [-w, -h, w, h, w, -h, -w, h]
+            elements = [0, 6, 2, 0, 4, 6,
+                        2, 5, 1, 2, 6, 5,
+                        1, 7, 3, 1, 5, 7,
+                        3, 4, 0, 3, 7, 4]
+
+        return self.pad_list_to_size(verts, 16), elements
 
 
 class RegPoly(Object):
@@ -148,7 +185,7 @@ class RegPoly(Object):
         self.ebo.free()
         super().__del__()
 
-    def draw(self, draw_attrs):
+    def draw(self, draw_attrs, evaluated_attrs, inherited_attrs):
         faces = max(3, min(draw_attrs.get("faces"), draw_attrs.get("max_faces")))
         self.vertices = [0, 0] + self.distribute(draw_attrs.get("size_x"), draw_attrs.get("size_y"), faces)
         self.indices = self.tri_fan_indices(faces)
@@ -214,7 +251,7 @@ class ShadedRect(Object):
         self.ebo.free()
         super().__del__()
 
-    def draw(self, draw_attrs):
+    def draw(self, draw_attrs, evaluated_attrs, inherited_attrs):
         self.vao.draw_mode(gl.Vao.Modes.fill)
 
         matrix = self.get_matrix(draw_attrs)
@@ -233,7 +270,7 @@ class FractalRenderer(ShadedRect):
         self.type = "Fractal Rectangle"
         self.default_attrs["max_iters"] = [20, "maximum iteration count"]
 
-    def draw(self, draw_attrs):
+    def draw(self, draw_attrs, evaluated_attrs, inherited_attrs):
         self.vao.draw_mode(gl.Vao.Modes.fill)
         self.vbo.add_data(self.zip_coords(self.vertices, self.convert_dims_to_rect_verts(draw_attrs.get("uv_coords"))), gl.GL_const.dynamic_draw)
 

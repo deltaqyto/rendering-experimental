@@ -2,6 +2,7 @@ import yaml
 import importlib
 import bindings as gl
 from scene import Scene
+from editor import Editor
 
 
 class Project:
@@ -21,17 +22,19 @@ class Project:
         self.default_shader_name = "default"
 
         self.target_scene = "root"
+        self.editor = Editor()
 
     def update_object_types(self, types):
         self.object_map.update(types)
 
     def enable_edit(self):
-        self.target_scene = "editor"
-        self.scenes["editor"] = Scene("editor", {"root": None}, self_attrs={"size_x": ["const", 0.8], "size_y": ["const", 0.8]})  # todo implement
+        self.target_scene = self.editor.editor_name
+        self.scenes.update(self.editor.get_editor_scenes())
+        self.objects.update(self.editor.get_editor_objects())  # Objects reserved by the editor will be prefixed with edt_. Avoid clashes
 
     def disable_edit(self):
         self.target_scene = "root"
-        self.scenes.pop("editor")
+        self.scenes.pop(self.editor.editor_name)
 
     def render(self, passthrough_attribs):
         self.attributes.update(passthrough_attribs)

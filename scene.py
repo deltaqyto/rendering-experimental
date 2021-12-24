@@ -3,8 +3,8 @@ from attr_handling import parse_attribute_functions, mix_attributes, clip_rects
 
 class Scene:
     def __init__(self, name, sc_children=None, obj_children=None, self_attrs=None):
-        self.sc_children = sc_children if sc_children is not None else {}
-        self.obj_children = obj_children if obj_children is not None else {}
+        self.sc_children = sc_children if sc_children is not None else []
+        self.obj_children = obj_children if obj_children is not None else []
         self.attributes = self_attrs if self_attrs is not None else {}
         self.name = name
 
@@ -30,9 +30,8 @@ class Scene:
         gen_clip_rect = [- inheritables["clip_size_x"] * inheritables["size_x"], - inheritables["clip_size_y"] * inheritables["size_y"],
                          inheritables["clip_size_x"] * inheritables["size_x"], inheritables["clip_size_y"] * inheritables["size_y"]]
         inheritables["clip_rect"] = clip_rects(gen_clip_rect, *[i for i in inheritables["clip_rect"] if i is not None])
-
         # Render all objects
-        for name, obj_attrs in self.obj_children.items():
+        for name in self.obj_children:
             if name not in objects:
                 print("skip")
                 continue
@@ -41,10 +40,11 @@ class Scene:
         # Render all scenes
         if depth < 0:
             return
-        for name, scene_attrs in self.sc_children.items():
+        for name in self.sc_children:
             if name not in scenes:
                 continue
-            scenes[name].render(evaluators, objects, scenes, shared_data, depth - 1, inheritables, parse_map, mix_map)  # Incomplete, needs parent attributes to be parsed and passed
+            scenes[name].render(evaluators, objects, scenes, shared_data, depth - 1, inheritables, parse_map,
+                                mix_map)  # Incomplete, needs parent attributes to be parsed and passed
 
     def __repr__(self):
         return f"Scene {self.name}"

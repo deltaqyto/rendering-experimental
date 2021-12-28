@@ -4,11 +4,10 @@ graph:
     root:
       self:
       scenes:
-        sub:
       objects:
-        sr1:
+        - fr1
   objects:
-    sr1:
+    fr1:
       type: fractalrect
       max_iters:
         - - fsine

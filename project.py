@@ -22,26 +22,34 @@ class Project:
         self.default_shader_name = "default"
 
         self.target_scene = "root"
+        self.edit = False
         self.editor = Editor()
 
     def update_object_types(self, types):
         self.object_map.update(types)
 
     def enable_edit(self):
+        self.edit = True
         self.target_scene = self.editor.editor_name
-        self.scenes.update(self.editor.get_editor_scenes())
-        self.objects.update(self.editor.get_editor_objects())  # Objects reserved by the editor will be prefixed with edt_. Avoid clashes
 
     def disable_edit(self):
+        self.edit = False
         self.target_scene = "root"
-        self.scenes.pop(self.editor.editor_name)
 
     def render(self, passthrough_attribs):
         self.attributes.update(passthrough_attribs)
         self.attributes["shader"] = self.shaders[self.default_shader_name]
         self.attributes["custom_shaders"] = self.shaders
+
+        if self.edit:
+            self.scenes.update(self.editor.get_editor_scenes())
+            self.objects.update(self.editor.get_editor_objects())  # Objects reserved by the editor will be prefixed with edt_. Avoid clashes
+
         base_scene = self.scenes[self.target_scene].render(self.attributes, self.objects, self.scenes, {**self.shared_data, **self.attributes},
                                                            self.setup.get("max_draw_depth", 5), parse_map=self.parse_map, mix_map=self.mix_map)
+        if self.edit:
+            self.editor.update(self.attributes, self.scenes, self.objects)
+
         return base_scene
 
     def load(self, file_name):

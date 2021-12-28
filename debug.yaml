@@ -7,12 +7,6 @@ graph:
           - fsine
           - 0.01
           - 0.8
-        clip_size_x:
-          - const
-          - 40
-        clip_size_y:
-          - const
-          - 40
       scenes:
         - sub
       objects:

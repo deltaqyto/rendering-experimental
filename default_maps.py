@@ -47,7 +47,5 @@ def const_group(driver, values, timings, default):
         if driver >= time:
             valid = val
         else:
-            return valid
-    if valid is not None:
-        return valid
-    return default
+            return default if valid is None else valid
+    return default if valid is None else valid

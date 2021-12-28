@@ -14,7 +14,6 @@ def main():
     # project.load("Examples\\Mandelbrot set\\mandel.yaml")
     project.load("debug.yaml")
 
-    frame_rate = project.setup["frame_rate"]
     elapsed_frames = 0
 
     step_mode = "play"
@@ -34,8 +33,6 @@ def main():
     lastMouse = gl.Screen.PressModes.release
 
     lastspace = False
-    lastleft = False
-    lastright = False
     laste = False
 
     force_draw = True
@@ -73,19 +70,13 @@ def main():
             lastspace = True
 
         if screen.get_key_state(gl.Screen.Keys.Left) == gl.Screen.PressModes.press:
-            if lastleft:
+            if key_press_timers[0] + scrubbing_repeat_time < current_time and step_mode == "pause":
                 elapsed_frames -= 1
                 key_press_timers[0] = current_time
-            lastleft = False
-        else:
-            lastleft = True
         if screen.get_key_state(gl.Screen.Keys.Right) == gl.Screen.PressModes.press:
-            if lastright:
+            if key_press_timers[1] + scrubbing_repeat_time < current_time and step_mode == "pause":
                 elapsed_frames += 1
                 key_press_timers[1] = current_time
-            lastright = False
-        else:
-            lastright = True
         if screen.get_key_state(gl.Screen.Keys.e) == gl.Screen.PressModes.press:
             if laste:
                 if do_edit:

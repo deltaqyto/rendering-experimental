@@ -1,7 +1,22 @@
 import bindings as gl
 from project import Project
 
+
 # Current priorities, in order:
+# todo finish the regpoly collision
+# todo work out why negative frames crash
+# todo object level procedure to save the selected item's name
+# todo implement some selection handles
+# todo cleanups to the main
+# todo a spot for these todo messages
+
+# Debug assistants
+# todo cryptomatte
+
+
+# Future tasks
+# todo an interface wrapper for pygame?
+# todo compute-style object systems?
 
 def main():
     scale = 1
@@ -37,8 +52,11 @@ def main():
     lastleft = False
     lastright = False
     laste = False
+    mouse_press = [False, False]
+    last_mouse_press = [False, False]
 
     force_draw = True
+    frame_was_drawn = False
 
     while not screen.should_close():
         # Process time
@@ -61,6 +79,9 @@ def main():
                 mouseBound = not mouseBound
 
         lastMouse = screen.get_mouse_state(gl.Screen.MouseButtons.right)
+
+        if frame_was_drawn:
+            mouse_press = [False, False]
 
         # Assorted key checking
         if screen.get_key_state(gl.Screen.Keys.x) == gl.Screen.PressModes.press:
@@ -100,6 +121,20 @@ def main():
         else:
             laste = True
 
+        if screen.get_mouse_state(gl.Screen.MouseButtons.left) == gl.Screen.PressModes.press:
+            if last_mouse_press[0]:
+                mouse_press[0] = True
+            last_mouse_press[0] = False
+        else:
+            last_mouse_press[0] = True
+
+        if screen.get_mouse_state(gl.Screen.MouseButtons.right) == gl.Screen.PressModes.press:
+            if last_mouse_press[1]:
+                mouse_press[1] = True
+            last_mouse_press[1] = False
+        else:
+            last_mouse_press[1] = True
+
         screen.set_mouse_capture(mouseBound)
 
         size_x = screen.screen_x
@@ -114,16 +149,19 @@ def main():
         # -------------------------------
 
         if time_since_last_frame > 1/project.setup.get("frame_rate", 30) or force_draw:
+            frame_was_drawn = True
             force_draw = False
             time_since_last_frame = 0
             screen.set_color(*background_color, 1)
             screen.clear(True, True)
-            project.render({"debug_draw_bounds": True, "frames": elapsed_frames, "screen_x": size_x,
-                            "screen_y": size_y, "aspect": aspect})
+            project.render({"debug_draw_bounds": True, "frames": elapsed_frames, "screen_x": size_x, "screen_y": size_y, "aspect": aspect,
+                            "mouse_x": 2 * (screen.pos_x / size_x) - 1, "mouse_y": -(2 * (screen.pos_y / size_y) - 1), "mouse_press": mouse_press})
             screen.flip()
 
             if step_mode == "play":
                 elapsed_frames += 1
+        else:
+            frame_was_drawn = False
 
     screen.stop()
     return 0
